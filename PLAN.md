@@ -1,5 +1,12 @@
 # PLAN — LangChain Deep Agents
 
+## Project Goals
+
+1. **Learn LangGraph's deep agent patterns** — planning, sub-agent delegation, checkpointing, human-in-the-loop, eval-driven development
+2. **Hands-on local LLM experience** — setting up and running Gemma 4 via Ollama on Apple Silicon
+3. **Build a reusable deep research agent** — usable for real research tasks beyond the course
+4. **Portfolio project** — publish to [GitHub](https://github.com/tuggspeedman-ai), showcase on [jonathanavni.com](https://jonathanavni.com/), write a [blog post](https://jonathanavni.com/blog) about it
+
 ## Current State
 
 **Milestone:** M0 — Project Setup

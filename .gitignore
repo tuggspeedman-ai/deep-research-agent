@@ -39,3 +39,7 @@ Thumbs.db
 
 # LangSmith
 .langsmith/
+
+# Claude Code (personal/local)
+.claude/memory/
+.claude/settings.json
