@@ -9,8 +9,8 @@
 
 ## Current State
 
-**Milestone:** M1 — Complete. Ready for M2
-**Next session:** Start M2 — Task Planning (TODOs)
+**Milestone:** M2 — Complete. Ready for M3
+**Next session:** Start M3 — Virtual File System & Context Offloading
 **Blocked:** Nothing
 
 ## M0: Project Setup ✅ COMPLETE
@@ -21,43 +21,9 @@ Python project initialized with uv. Gemma 4 26B running via Ollama v0.20.2. Smok
 
 ReAct agent with `create_agent` + Gemma 4. Custom state, InjectedState, Command, structured output, parallel tool calls — all verified. 9 tests pass. Full detail in `PLAN-archive.md`.
 
-## M2 — Task Planning (TODOs) 🔄 IN PROGRESS
+## M2: Task Planning (TODOs) ✅ COMPLETE
 
-### Goal
-Implement TODO-based planning so the agent can break complex tasks into steps, track progress, and resist context drift.
-
-*Course reference: notebook 1 (`1_todo.ipynb`)*
-
-### Design Decisions
-- **`todos` only** — no `files` field until M3. No over-engineering
-- **No reducer on `todos`** — full overwrite semantics. LLM rewrites the entire list each call (Manus/Claude Code pattern)
-- **Mock `web_search`** — canned MCP response. Real search comes in M5, avoids API keys now
-- **`read_todos` returns `str`** — simpler than Command when no state update needed (LangGraph auto-wraps as ToolMessage)
-- **Recursion limit 30** — TODO loop needs more tool-call steps than M1's calculator (20)
-- **M1 untouched** — calc agent stays as-is. M2 starts the "deep agent" lineage (M2→M5)
-
-### New Files
-| File | ~Lines | Purpose |
-|------|--------|---------|
-| `src/state.py` | 30 | `Todo` TypedDict + `DeepAgentState(AgentState)` with `todos` field |
-| `src/prompts.py` | 50 | `WRITE_TODOS_DESCRIPTION`, `TODO_USAGE_INSTRUCTIONS`, `SIMPLE_RESEARCH_INSTRUCTIONS` |
-| `src/todo_tools.py` | 60 | `write_todos` (→ Command) + `read_todos` (→ str) |
-| `src/deep_agent.py` | 70 | `mock_web_search` tool + `create_deep_agent()` factory |
-| `tests/test_todo.py` | 120 | Unit tests (no LLM) + integration tests (Ollama + Gemma 4) |
-
-### Tasks
-- [x] `src/state.py` — `Todo` TypedDict + `DeepAgentState` with `todos` field
-- [x] `src/prompts.py` — tool descriptions + TODO workflow instructions
-- [x] `src/todo_tools.py` — `write_todos` (Command return) + `read_todos` (str return)
-- [x] `src/deep_agent.py` — mock web search + `create_deep_agent()` factory
-- [x] `tests/test_todo.py` — unit tests (tool mechanics) + integration tests (agent behavior)
-- [x] Run all tests (M1 + M2), verify everything passes — 15/15 pass
-
-### Verification
-- Unit: `write_todos` returns Command with correct todos + ToolMessage; `read_todos` formats output; handles empty state
-- Integration: agent creates todos for multi-step prompt, completes at least one, calls mock_web_search
-- Regression: all M1 tests still pass
-- `uv run pytest -v`
+DeepAgentState with todos, write_todos/read_todos tools, TODO workflow prompts. Agent plans, executes via mock search, updates progress. 6 new tests (3 unit + 3 integration), 15/15 total. Full detail in `PLAN-archive.md`.
 
 ## M3 — Virtual File System & Context Offloading
 
