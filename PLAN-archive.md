@@ -82,3 +82,35 @@ Completed milestone details, preserved for historical context. Active work track
 - Tools with `InjectedToolCallId` require full ToolCall dict format (`{name, args, type, id}`) when invoked directly in tests — plain dict invocation raises ValueError
 - `read_todos` returning `str` vs `Command`: when a `@tool` returns a plain string, LangGraph auto-wraps it as a ToolMessage. Use `str` when no state update needed, `Command` when you need to mutate state
 - Gemma 4 follows the TODO workflow reliably with explicit prompting (plan → work → read → reflect → update)
+
+---
+
+## M3: Virtual File System & Context Offloading ✅ COMPLETE
+
+**Result:** Virtual filesystem stored as `dict[str, str]` in DeepAgentState with merge reducer. Three tools (`ls`, `read_file`, `write_file`) for context offloading. System prompt includes `FILE_USAGE_INSTRUCTIONS` for orient→save→research→read workflow. 13 new tests, 28 total passing.
+
+### Design Decisions
+- **Merge reducer on `files`** — unlike todos (full-overwrite), files use `file_reducer` that merges dicts with `{**left, **right}`. This means `write_file` only sends `{path: content}` and the reducer handles merging into existing files
+- **`write_file` skips `InjectedState`** — the course version reads existing files from state and rebuilds the full dict manually. Our reducer makes this unnecessary, simpler implementation
+- **No physical files** — the "filesystem" is purely in-memory, keys are arbitrary strings that look like paths. No directory structure, no disk I/O
+- **`read_file` pagination** — offset/limit support with `cat -n` style line numbering, 2000 char line truncation. Negative offset/limit clamped to 0
+
+### Tasks
+- [x] `src/state.py` — `file_reducer` function + `files` field on `DeepAgentState`
+- [x] `src/file_tools.py` — `ls` (→ list), `read_file` (→ str), `write_file` (→ Command)
+- [x] `src/prompts.py` — `LS_DESCRIPTION`, `READ_FILE_DESCRIPTION`, `WRITE_FILE_DESCRIPTION`, `FILE_USAGE_INSTRUCTIONS`
+- [x] `src/deep_agent.py` — wired file tools into TOOLS list + system prompt
+- [x] `tests/test_files.py` — 12 unit tests + 1 integration test
+- [x] All 28 tests pass (no regressions)
+
+### Key Files Created/Modified
+- `src/state.py` — added `file_reducer`, `files` field
+- `src/file_tools.py` — **new** — three file tools
+- `src/prompts.py` — added 4 prompt constants
+- `src/deep_agent.py` — extended TOOLS and system prompt
+- `tests/test_files.py` — **new** — 13 tests
+
+### Notable Findings
+- Tools returning `list` (like `ls`) get auto-wrapped as `ToolMessage` by LangGraph — tests need to extract `.content`
+- Merge reducer eliminates need for `InjectedState` in `write_file` — a genuine simplification over the course reference
+- `FILE_USAGE_INSTRUCTIONS` nudges the LLM to use files proactively, but Gemma 4 follows inconsistently unless explicitly asked

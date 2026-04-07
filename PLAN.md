@@ -9,7 +9,8 @@
 
 ## Current State
 
-**Milestone:** M3 — Virtual File System & Context Offloading (in progress)
+**Milestone:** M3 — Complete. Ready for M4
+**Next session:** Start M4 — Sub-agent Delegation
 **Blocked:** Nothing
 
 ## M0: Project Setup ✅ COMPLETE
@@ -24,42 +25,9 @@ ReAct agent with `create_agent` + Gemma 4. Custom state, InjectedState, Command,
 
 DeepAgentState with todos, write_todos/read_todos tools, TODO workflow prompts. Agent plans, executes via mock search, updates progress. 6 new tests (3 unit + 3 integration), 15/15 total. Full detail in `PLAN-archive.md`.
 
-## M3 — Virtual File System & Context Offloading ← ACTIVE
+## M3: Virtual File System & Context Offloading ✅ COMPLETE
 
-### Goal
-Add a virtual file system in agent state so the agent can store and retrieve information, reducing token pressure in the message history.
-
-*Course reference: notebook 2 (`2_files.ipynb`)*
-
-### Design
-
-**State:** Add `file_reducer(left, right)` → `{**left, **right}` (merges dicts, right wins, handles None). Add `files: Annotated[NotRequired[dict[str, str]], file_reducer]` to `DeepAgentState`. Unlike todos (full-overwrite), files use a merge reducer so `write_file` only sends `{path: content}`.
-
-**Tools** (`src/file_tools.py` — new file):
-
-| Tool | Params | Injections | Returns |
-|------|--------|------------|---------|
-| `ls` | none | `InjectedState` | `list[str]` |
-| `read_file` | `file_path`, `offset=0`, `limit=2000` | `InjectedState` | `str` (line-numbered) |
-| `write_file` | `file_path`, `content` | `InjectedToolCallId` | `Command` |
-
-**Prompts** (`src/prompts.py`): Add `LS_DESCRIPTION`, `READ_FILE_DESCRIPTION`, `WRITE_FILE_DESCRIPTION`, `FILE_USAGE_INSTRUCTIONS` (orient→save→research→read workflow).
-
-**Agent** (`src/deep_agent.py`): Import file tools, add to `TOOLS`, append `FILE_USAGE_INSTRUCTIONS` to system prompt.
-
-### Tasks
-- [ ] Add `file_reducer` + `files` field to `DeepAgentState` in `src/state.py`
-- [ ] Create `src/file_tools.py` with `ls`, `read_file`, `write_file`
-- [ ] Add file tool descriptions + `FILE_USAGE_INSTRUCTIONS` to `src/prompts.py`
-- [ ] Wire file tools into `src/deep_agent.py` (TOOLS + system prompt)
-- [ ] Create `tests/test_files.py` — unit tests (reducer, all 3 tools, edge cases)
-- [ ] Add integration test — agent writes and reads files via LLM
-- [ ] Run full test suite — all existing tests still pass
-
-### Verification
-- `uv run pytest tests/test_files.py -v` — unit tests pass without Ollama
-- `uv run pytest tests/test_files.py -v -k integration` — agent writes/reads files
-- `uv run pytest` — all 15 existing + new tests pass (no regressions)
+Virtual filesystem in DeepAgentState with `file_reducer` (merge semantics). `ls`, `read_file`, `write_file` tools. `write_file` simplified over course version — skips `InjectedState` since reducer handles merge. 13 new tests (12 unit + 1 integration), 28 total. Full detail in `PLAN-archive.md`.
 
 ## M4 — Sub-agent Delegation
 
