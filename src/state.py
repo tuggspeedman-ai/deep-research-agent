@@ -1,10 +1,9 @@
 """State definitions for the deep agent.
 
 Defines the Todo type and DeepAgentState used across M2+.
-The files field will be added in M3.
 """
 
-from typing import Literal, NotRequired
+from typing import Annotated, Literal, NotRequired
 
 from langchain.agents import AgentState
 from typing_extensions import TypedDict
@@ -22,11 +21,27 @@ class Todo(TypedDict):
     status: Literal["pending", "in_progress", "completed"]
 
 
+def file_reducer(
+    left: dict[str, str] | None, right: dict[str, str] | None
+) -> dict[str, str]:
+    """Merge two file dictionaries, with right side taking precedence.
+
+    Unlike todos (full-overwrite), files use a merge reducer so write_file
+    only needs to send {path: content} and it merges into existing files.
+    """
+    if left is None:
+        return right or {}
+    if right is None:
+        return left
+    return {**left, **right}
+
+
 class DeepAgentState(AgentState):
-    """Extended agent state with TODO-based task planning.
+    """Extended agent state with TODO planning and virtual file system.
 
     Inherits messages from AgentState. The todos field uses full-overwrite
-    semantics (no reducer) — the LLM rewrites the entire list each update.
+    semantics. The files field uses file_reducer for incremental merges.
     """
 
     todos: NotRequired[list[Todo]]
+    files: Annotated[NotRequired[dict[str, str]], file_reducer]

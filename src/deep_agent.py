@@ -1,8 +1,9 @@
-"""Deep agent with TODO-based task planning.
+"""Deep agent with TODO planning and virtual file system.
 
 Demonstrates:
-- DeepAgentState with a todos field for tracking progress
+- DeepAgentState with todos and files fields
 - write_todos / read_todos tools for plan management
+- ls / read_file / write_file tools for context offloading
 - Mock web search (replaced with real search in M5)
 - TODO workflow: plan → work → read todos → reflect → update → repeat
 """
@@ -11,7 +12,12 @@ from langchain.agents import create_agent
 from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 
-from src.prompts import SIMPLE_RESEARCH_INSTRUCTIONS, TODO_USAGE_INSTRUCTIONS
+from src.file_tools import ls, read_file, write_file
+from src.prompts import (
+    FILE_USAGE_INSTRUCTIONS,
+    SIMPLE_RESEARCH_INSTRUCTIONS,
+    TODO_USAGE_INSTRUCTIONS,
+)
 from src.state import DeepAgentState
 from src.todo_tools import read_todos, write_todos
 
@@ -43,10 +49,14 @@ SYSTEM_PROMPT = (
     + "\n\n"
     + "=" * 40
     + "\n\n"
+    + FILE_USAGE_INSTRUCTIONS
+    + "\n\n"
+    + "=" * 40
+    + "\n\n"
     + SIMPLE_RESEARCH_INSTRUCTIONS
 )
 
-TOOLS = [write_todos, read_todos, mock_web_search]
+TOOLS = [write_todos, read_todos, mock_web_search, ls, read_file, write_file]
 
 
 def create_deep_agent(model: str = "gemma4:26b", temperature: float = 0):
