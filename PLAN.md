@@ -9,34 +9,17 @@
 
 ## Current State
 
-**Milestone:** M0 — Project Setup
-**Status:** Complete
+**Milestone:** M1 — Complete. Ready for M2
+**Next session:** Start M2 — Task Planning (TODOs)
+**Blocked:** Nothing
 
-## Completed Milestones
+## M0: Project Setup ✅ COMPLETE
 
-### M0 — Project Setup ✓
-Initialized Python project with uv, installed deps, verified Gemma 4 26B runs via Ollama v0.20.2, basic response and tool calling smoke tests pass.
+Python project initialized with uv. Gemma 4 26B running via Ollama v0.20.2. Smoke tests pass (basic response + tool calling). GitHub repo live. Full detail in `PLAN-archive.md`.
 
-## M1 — ReAct Agent Foundation
+## M1: ReAct Agent Foundation ✅ COMPLETE
 
-### Goal
-Build a basic ReAct agent using LangGraph's `create_agent` with Gemma 4. Understand the agent loop, custom state, `InjectedState`, and `Command` patterns.
-
-*Course reference: notebook 0 (`0_create_agent.ipynb`)*
-
-### Tasks
-- [ ] Create a ReAct agent with `create_agent` (or `create_react_agent`) and Gemma 4
-- [ ] Add a custom state schema extending `AgentState`
-- [ ] Implement a tool using `InjectedState` to read graph state
-- [ ] Implement a tool returning `Command` to update state directly
-- [ ] Verify structured output (`.with_structured_output()`) works with Gemma 4
-- [ ] Test parallel tool calls in a single response (needed for M3)
-- [ ] Write tests for the agent loop
-
-### Verification
-- Agent completes a multi-step task using tools
-- Custom state is read and updated correctly via tools
-- `pytest` passes, `ruff check .` clean
+ReAct agent with `create_agent` + Gemma 4. Custom state, InjectedState, Command, structured output, parallel tool calls — all verified. 9 tests pass. Full detail in `PLAN-archive.md`.
 
 ## M2 — Task Planning (TODOs)
 
