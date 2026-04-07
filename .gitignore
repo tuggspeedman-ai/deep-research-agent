@@ -43,3 +43,6 @@ Thumbs.db
 # Claude Code (personal/local)
 .claude/memory/
 .claude/settings.json
+
+# Course reference materials (not our code)
+course-materials/
