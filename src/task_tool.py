@@ -85,10 +85,13 @@ def _create_task_tool(tools, subagents: list[SubAgent], model, state_schema):
 
         sub_agent = agents[subagent_type]
 
-        # Context isolation — replace parent messages with just the task
-        state["messages"] = [{"role": "user", "content": description}]
+        # Context isolation — fresh messages, preserve files
+        sub_state = {
+            **state,
+            "messages": [{"role": "user", "content": description}],
+        }
 
-        result = sub_agent.invoke(state)
+        result = sub_agent.invoke(sub_state)
 
         return Command(
             update={

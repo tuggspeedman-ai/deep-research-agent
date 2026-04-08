@@ -1,52 +1,38 @@
 """Deep agent with TODO planning, virtual file system, and sub-agent delegation.
 
-Demonstrates:
+Composes all tools into a full deep research agent:
 - DeepAgentState with todos and files fields
 - write_todos / read_todos tools for plan management
 - ls / read_file / write_file tools for context offloading
 - think_tool for structured reflection
+- tavily_search for web search with context offloading
 - task tool for sub-agent delegation with context isolation
-- Mock web search (replaced with real search in M5)
 """
 
+from datetime import datetime
+
 from langchain.agents import create_agent
-from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 
 from src.file_tools import ls, read_file, write_file
 from src.prompts import (
     FILE_USAGE_INSTRUCTIONS,
-    SIMPLE_RESEARCH_INSTRUCTIONS,
+    RESEARCHER_INSTRUCTIONS,
     SUBAGENT_USAGE_INSTRUCTIONS,
     TODO_USAGE_INSTRUCTIONS,
 )
+from src.research_tools import tavily_search
 from src.state import DeepAgentState
 from src.task_tool import SubAgent, _create_task_tool
 from src.think_tool import think_tool
 from src.todo_tools import read_todos, write_todos
 
-# Canned response for mock search — real Tavily search comes in M5.
-_MOCK_SEARCH_RESULT = """\
-The Model Context Protocol (MCP) is an open standard protocol developed \
-by Anthropic to enable seamless integration between AI models and external \
-systems like tools, databases, and other services. It acts as a standardized \
-communication layer, allowing AI models to access and utilize data from \
-various sources in a consistent and efficient manner. Essentially, MCP \
-simplifies the process of connecting AI assistants to external services \
-by providing a unified language for data exchange."""
+
+def _get_today_str() -> str:
+    return datetime.now().strftime("%a %b %-d, %Y")
 
 
-@tool(parse_docstring=True)
-def mock_web_search(query: str) -> str:
-    """Search the web for information on a specific topic.
-
-    Args:
-        query: The search query string.
-    """
-    return _MOCK_SEARCH_RESULT
-
-
-# Default sub-agent: research agent with search + file tools + think
+# Default sub-agent: research agent with search + think
 DEFAULT_SUBAGENTS: list[SubAgent] = [
     {
         "name": "research-agent",
@@ -54,8 +40,8 @@ DEFAULT_SUBAGENTS: list[SubAgent] = [
             "Delegate research to the sub-agent researcher. "
             "Only give this researcher one topic at a time."
         ),
-        "prompt": SIMPLE_RESEARCH_INSTRUCTIONS,
-        "tools": ["mock_web_search", "think_tool", "ls", "read_file", "write_file"],
+        "prompt": RESEARCHER_INSTRUCTIONS.format(date=_get_today_str()),
+        "tools": ["tavily_search", "think_tool"],
     },
 ]
 
@@ -63,7 +49,7 @@ DEFAULT_SUBAGENTS: list[SubAgent] = [
 SUPERVISOR_TOOLS = [
     write_todos,
     read_todos,
-    mock_web_search,
+    tavily_search,
     think_tool,
     ls,
     read_file,
@@ -98,7 +84,7 @@ def create_deep_agent(
     Args:
         model: Ollama model name.
         temperature: LLM temperature.
-        subagents: Sub-agent configs. Defaults to a research agent with mock search.
+        subagents: Sub-agent configs. Defaults to a research agent with Tavily search.
     """
     llm = ChatOllama(model=model, temperature=temperature)
 

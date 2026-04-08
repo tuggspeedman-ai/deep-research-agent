@@ -84,6 +84,7 @@ def agent():
     return create_deep_agent()
 
 
+@pytest.mark.integration
 def test_agent_creates_todos(agent):
     """Agent creates a todo list when given a multi-step research prompt."""
     result = invoke(
@@ -95,6 +96,7 @@ def test_agent_creates_todos(agent):
     assert len(todos) >= 1, "Agent should create at least one TODO"
 
 
+@pytest.mark.integration
 def test_agent_completes_todos(agent):
     """Agent marks at least one todo as completed by the end of the run."""
     result = invoke(
@@ -107,21 +109,22 @@ def test_agent_completes_todos(agent):
     assert len(completed) >= 1, "Agent should complete at least one TODO"
 
 
+@pytest.mark.integration
 def test_agent_calls_web_search(agent):
-    """Agent calls mock_web_search during execution."""
+    """Agent calls tavily_search during execution."""
     result = invoke(
         agent,
         "Research the Model Context Protocol and summarize it for me.",
     )
     messages = result["messages"]
     search_called = any(
-        hasattr(m, "name") and m.name == "mock_web_search" for m in messages
+        hasattr(m, "name") and m.name == "tavily_search" for m in messages
     )
-    # Also check tool messages that contain MCP content
+    # Also check tool messages that contain search results
     if not search_called:
         search_called = any(
             "Model Context Protocol" in getattr(m, "content", "")
             for m in messages
             if getattr(m, "type", "") == "tool"
         )
-    assert search_called, "Agent should call mock_web_search"
+    assert search_called, "Agent should call tavily_search"

@@ -173,6 +173,7 @@ def agent():
     return create_deep_agent()
 
 
+@pytest.mark.integration
 def test_agent_writes_and_reads_file(agent):
     """Agent stores information in a file and the files dict is populated."""
     result = invoke(

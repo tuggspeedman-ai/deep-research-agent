@@ -75,9 +75,9 @@ def test_subagent_config_with_tools():
         "name": "test-agent",
         "description": "A test agent",
         "prompt": "You are a test agent.",
-        "tools": ["mock_web_search", "think_tool"],
+        "tools": ["tavily_search", "think_tool"],
     }
-    assert agent["tools"] == ["mock_web_search", "think_tool"]
+    assert agent["tools"] == ["tavily_search", "think_tool"]
 
 
 # ---------------------------------------------------------------------------
@@ -245,6 +245,7 @@ def agent():
     return create_deep_agent()
 
 
+@pytest.mark.integration
 def test_supervisor_delegates_to_subagent(agent):
     """Supervisor delegates a research task and receives a result."""
     result = invoke(
@@ -257,6 +258,7 @@ def test_supervisor_delegates_to_subagent(agent):
     assert len(files) >= 1, f"Expected sub-agent to write files, got: {files}"
 
 
+@pytest.mark.integration
 def test_subagent_file_writes_visible(agent):
     """Files written by sub-agents are visible in the final state."""
     result = invoke(

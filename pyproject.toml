@@ -7,6 +7,9 @@ dependencies = [
     "langgraph",
     "langchain",
     "langchain-ollama",
+    "tavily-python",
+    "httpx",
+    "markdownify",
 ]
 
 [project.optional-dependencies]
@@ -24,3 +27,6 @@ select = ["E", "F", "I", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: requires Ollama + external APIs (Tavily)",
+]
