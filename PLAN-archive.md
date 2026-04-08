@@ -114,3 +114,39 @@ Completed milestone details, preserved for historical context. Active work track
 - Tools returning `list` (like `ls`) get auto-wrapped as `ToolMessage` by LangGraph — tests need to extract `.content`
 - Merge reducer eliminates need for `InjectedState` in `write_file` — a genuine simplification over the course reference
 - `FILE_USAGE_INSTRUCTIONS` nudges the LLM to use files proactively, but Gemma 4 follows inconsistently unless explicitly asked
+
+---
+
+## M4: Sub-agent Delegation ✅ COMPLETE
+
+**Result:** Sub-agent delegation with context isolation. `_create_task_tool()` factory spawns sub-agents with fresh message history but shared virtual file system. `SubAgent` TypedDict config, `think_tool` for structured reflection, supervisor prompt with delegation scaling rules. 11 new tests (9 unit + 2 integration), 39 total passing.
+
+### Design Decisions
+- **Context isolation via message reset** — `state["messages"] = [{"role": "user", "content": description}]` gives sub-agents fresh context while preserving shared file system through `file_reducer`
+- **`SubAgent` is a TypedDict** — `name`, `description`, `prompt`, `tools: NotRequired[list[str]]`. Matches course pattern exactly
+- **`_create_task_tool()` factory** — builds agent registry at init time, returns a `task` tool with `InjectedState` + `InjectedToolCallId`
+- **`think_tool` is stateless** — takes reflection string, returns confirmation. No `Command`, no state changes. Gives the LLM a scratchpad
+- **Default sub-agent uses mock search** — real Tavily search deferred to M5
+- **Recursion limit raised to 50** — sub-agent delegation adds depth (supervisor + sub-agent each consume steps)
+
+### Tasks
+- [x] T1: Create `src/think_tool.py` — stateless `think_tool(reflection) -> str`
+- [x] T2: Add `TASK_DESCRIPTION_PREFIX` and `SUBAGENT_USAGE_INSTRUCTIONS` to `src/prompts.py`
+- [x] T3: Create `src/task_tool.py` — `SubAgent` TypedDict + `_create_task_tool()` factory
+- [x] T4: Update `src/deep_agent.py` — integrate task/think tools, define default research sub-agent
+- [x] T5: Create `tests/test_task.py` — unit tests (think_tool, task tool isolation, error handling)
+- [x] T6: Add integration tests — supervisor delegates, sub-agent file writes visible
+- [x] T7: Run full test suite, verify 28+ existing tests still pass + new tests
+
+### Key Files Created/Modified
+- `src/think_tool.py` — **new** — stateless reflection tool
+- `src/task_tool.py` — **new** — `SubAgent` TypedDict + `_create_task_tool()` factory
+- `src/prompts.py` — added `TASK_DESCRIPTION_PREFIX`, `SUBAGENT_USAGE_INSTRUCTIONS`
+- `src/deep_agent.py` — integrated task/think tools, `DEFAULT_SUBAGENTS` config, `SUPERVISOR_PROMPT`
+- `tests/test_task.py` — **new** — 9 unit + 2 integration tests
+
+### Notable Findings
+- Mocking tools in `_create_task_tool` tests requires real `BaseTool` instances — `MagicMock` fails the `isinstance(tool_, BaseTool)` check and LangChain tries to wrap it
+- Test state `messages` field must contain proper LangChain message objects (`HumanMessage`, `AIMessage`), not plain dicts — `InjectedState` validation rejects dicts without `type` key
+- Review flagged: no error handling around `sub_agent.invoke()` — add in M5 when real network calls can fail
+- Review flagged: sub-agents don't get explicit `recursion_limit` — consider setting in M5
