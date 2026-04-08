@@ -40,6 +40,9 @@ Thumbs.db
 # LangSmith
 .langsmith/
 
+# LangGraph dev server
+.langgraph_api/
+
 # Claude Code (personal/local)
 .claude/memory/
 .claude/settings.json

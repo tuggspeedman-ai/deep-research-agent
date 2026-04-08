@@ -10,6 +10,7 @@ dependencies = [
     "tavily-python",
     "httpx",
     "markdownify",
+    "langgraph-cli[inmem]",
 ]
 
 [project.optional-dependencies]

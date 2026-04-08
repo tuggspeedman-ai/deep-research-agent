@@ -78,6 +78,8 @@ def create_deep_agent(
     model: str = "gemma4:26b",
     temperature: float = 0,
     subagents: list[SubAgent] | None = None,
+    hitl: bool = False,
+    checkpointer: "Checkpointer | None" = None,
 ):
     """Create a deep agent with TODO planning, file system, and sub-agent delegation.
 
@@ -85,6 +87,9 @@ def create_deep_agent(
         model: Ollama model name.
         temperature: LLM temperature.
         subagents: Sub-agent configs. Defaults to a research agent with Tavily search.
+        hitl: Enable human-in-the-loop plan approval via interrupt on write_todos.
+        checkpointer: LangGraph checkpointer for persistence. Required for hitl.
+            If None and hitl=True, one must be provided by the runtime (e.g. langgraph dev).
     """
     llm = ChatOllama(model=model, temperature=temperature)
 
@@ -97,9 +102,32 @@ def create_deep_agent(
 
     all_tools = [*SUPERVISOR_TOOLS, task_tool]
 
+    middleware = []
+    if hitl:
+        from langchain.agents.middleware.human_in_the_loop import (
+            HumanInTheLoopMiddleware,
+        )
+
+        middleware.append(
+            HumanInTheLoopMiddleware(
+                interrupt_on={"write_todos": True},
+            )
+        )
+
     return create_agent(
         llm,
         all_tools,
         system_prompt=SUPERVISOR_PROMPT,
         state_schema=DeepAgentState,
-    ).with_config({"recursion_limit": 50})
+        middleware=middleware,
+        checkpointer=checkpointer,
+    )
+
+
+def _make_graph():
+    """Lazy graph factory for langgraph dev server.
+
+    langgraph dev calls this to get the compiled graph.
+    Defined as a function to avoid eager ChatOllama initialization at import time.
+    """
+    return create_deep_agent(hitl=True)
