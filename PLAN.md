@@ -9,8 +9,8 @@
 
 ## Current State
 
-**Milestone:** M4 — Complete. Ready for M5
-**Next session:** Start M5 — Full Deep Research Agent
+**Milestone:** M5 — Complete. Ready for M6
+**Next session:** Start M6 — Polish & Portfolio
 **Blocked:** Nothing
 
 ## M0: Project Setup ✅ COMPLETE
@@ -33,25 +33,9 @@ Virtual filesystem in DeepAgentState with `file_reducer` (merge semantics). `ls`
 
 Sub-agent delegation with context isolation via `_create_task_tool()` factory. `SubAgent` TypedDict config, `think_tool` for reflection, supervisor prompt with scaling rules. Context isolation through message reset; shared file system via `file_reducer`. 11 new tests (9 unit + 2 integration), 39 total. Full detail in `PLAN-archive.md`.
 
-## M5 — Full Deep Research Agent
+## M5: Full Deep Research Agent ✅ COMPLETE
 
-### Goal
-Compose everything into a working deep research agent with real web search, summarization, and the full tool suite.
-
-*Course reference: notebook 4 (`4_full_agent.ipynb`)*
-
-### Tasks
-- [ ] Integrate web search (Tavily)
-- [ ] Implement search result summarization (Gemma 4 E4B as lightweight summarizer)
-- [ ] Build the full tool suite: TODOs + files + sub-agents + search + think
-- [ ] Craft the supervisor system prompt
-- [ ] Test on a real research question end-to-end
-- [ ] Add dependencies: `tavily-python`, `httpx`, `markdownify`
-
-### Verification
-- Agent researches a complex topic, produces a structured report
-- Report is saved to the virtual file system
-- Sub-agents handle parallel research streams
+Real Tavily web search with context offloading (full content → files, summaries → messages). Gemma 4 E4B for summarization via structured output. `RESEARCHER_INSTRUCTIONS` prompt with search budgets and think-after-search workflow. Old `mock_web_search` replaced. 6 new unit tests + 1 integration test, 46 total (39 unit + 7 integration). Full detail in `PLAN-archive.md`.
 
 ## M6 — Polish & Portfolio
 
