@@ -187,3 +187,38 @@ Completed milestone details, preserved for historical context. Active work track
 - Review caught httpx.Client leak: client created inside loop, never closed. Fixed by hoisting outside loop + `.close()`
 - E4B structured output works reliably for the `Summary` schema
 - Full integration test (supervisor → delegate → Tavily → E4B summarize → file write → return) takes ~5 min on M4 Pro
+
+---
+
+## M5.5: Human-in-the-Loop + Deep Agents UI ✅
+
+### Goal
+Single approval gate after supervisor creates research plan. Web UI for demo.
+
+### What Was Built
+- `hitl` + `checkpointer` params on `create_deep_agent()` — opt-in HITL
+- `HumanInTheLoopMiddleware(interrupt_on={"write_todos": True})` — interrupts on every `write_todos` call (plan + status updates)
+- `_make_graph()` factory in `deep_agent.py` — lazy init for `langgraph dev`, avoids ChatOllama at import time
+- `langgraph.json` — config pointing to `_make_graph`, reads `.env`
+- `langgraph-cli[inmem]` dependency — includes `langgraph-api` for local dev server
+- Deep Agents UI as git submodule (`ui/`) — MIT licensed Next.js app with chat, TODO sidebar, file viewer, HITL approve/edit/reject
+- `Makefile` — `make setup` (Python + UI deps), `make run` (both servers in parallel), `make test`
+- `.gitignore` updated for `.langgraph_api/`
+- Removed `.with_config({"recursion_limit": 50})` — `create_agent` sets 9999 internally, 50 was too low for HITL
+
+### Tests
+- 3 unit tests: agent creation without/with HITL, middleware targets write_todos
+- 2 integration tests: full approve flow, full reject flow
+- 42 unit tests total (removed 1 dead test during review)
+
+### Key Decisions
+- Used `HumanInTheLoopMiddleware` over custom `interrupt()` calls — cleaner, officially supported
+- `_make_graph()` factory over module-level `graph = ...` — avoids eager ChatOllama init that breaks tests
+- `npm --legacy-peer-deps` over yarn — yarn not installed, eslint conflict in upstream UI repo
+- `langgraph dev` provides checkpointer — no need to pass one in code
+- LangSmith tracing optional — added to `.env`, no account required for core functionality
+
+### Known Limitations (addressed in M6)
+- Every `write_todos` call triggers approval (including status updates), not just the initial plan
+- Makefile hardcodes `ollama pull gemma4:26b` — doesn't support cloud providers
+- No multi-provider LLM support yet
