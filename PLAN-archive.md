@@ -150,3 +150,40 @@ Completed milestone details, preserved for historical context. Active work track
 - Test state `messages` field must contain proper LangChain message objects (`HumanMessage`, `AIMessage`), not plain dicts — `InjectedState` validation rejects dicts without `type` key
 - Review flagged: no error handling around `sub_agent.invoke()` — add in M5 when real network calls can fail
 - Review flagged: sub-agents don't get explicit `recursion_limit` — consider setting in M5
+
+---
+
+## M5: Full Deep Research Agent ✅ COMPLETE
+
+**Result:** Real Tavily web search with context offloading. Full page content fetched via httpx, converted to markdown, summarized by Gemma 4 E4B, saved to virtual files — only minimal summaries returned to agent messages. RESEARCHER_INSTRUCTIONS prompt with search budgets (1–5 calls) and think-after-search workflow. 7 new tests (6 unit + 1 integration), 46 total (39 unit + 7 integration).
+
+### Design Decisions
+- **Context offloading via search tool** — `tavily_search` returns `Command` updating both `files` (full content) and `messages` (summary only). Keeps agent context minimal while preserving raw data
+- **Gemma 4 E4B for summarization** — replaces course's GPT-4o-mini. `Summary` Pydantic model with structured output. Fallback: truncate content on error
+- **Lazy initialization** — both `TavilyClient` and `ChatOllama` created on first use via `_get_tavily_client()` / `_get_summarization_model()`. Avoids import-time failures when API keys or Ollama unavailable
+- **Research sub-agent gets search + think only** — no file tools needed since `tavily_search` handles file writes via `Command`
+- **InjectedToolArg for max_results/topic** — not exposed to LLM, controlled programmatically. Default: 1 result, general topic
+- **Integration tests marked separately** — `@pytest.mark.integration` for tests requiring Ollama + Tavily API key
+
+### Tasks
+- [x] T1: Add dependencies (`tavily-python`, `httpx`, `markdownify`) + `.env.example`
+- [x] T2: Create `src/research_tools.py` — Tavily search, E4B summarizer, context offloading
+- [x] T3: Update `src/prompts.py` — `SUMMARIZE_WEB_SEARCH`, `RESEARCHER_INSTRUCTIONS`; remove `SIMPLE_RESEARCH_INSTRUCTIONS`
+- [x] T4: Update `src/deep_agent.py` — wire `tavily_search`, remove `mock_web_search`
+- [x] T5: Create `tests/test_research.py` — 6 unit + 1 integration test
+- [x] T6: Update old tests — mark integration tests, update `mock_web_search` → `tavily_search` refs
+
+### Key Files Created/Modified
+- `src/research_tools.py` — **new** — `tavily_search` tool, `Summary` model, `run_tavily_search`, `summarize_webpage_content`, `process_search_results`
+- `src/prompts.py` — added `SUMMARIZE_WEB_SEARCH`, `RESEARCHER_INSTRUCTIONS`; removed `SIMPLE_RESEARCH_INSTRUCTIONS`
+- `src/deep_agent.py` — replaced mock search with real Tavily, updated sub-agent config
+- `src/task_tool.py` — fixed state mutation (shallow copy before modifying messages)
+- `tests/test_research.py` — **new** — 6 unit + 1 integration test
+- `tests/test_files.py`, `tests/test_task.py`, `tests/test_todo.py` — marked integration tests, updated refs
+
+### Notable Findings
+- `TavilyClient()` raises `MissingAPIKeyError` at construction if `TAVILY_API_KEY` not set — lazy init essential
+- Review caught state mutation bug in `task_tool.py`: `state["messages"] = ...` mutated caller's dict. Fixed with shallow copy
+- Review caught httpx.Client leak: client created inside loop, never closed. Fixed by hoisting outside loop + `.close()`
+- E4B structured output works reliably for the `Summary` schema
+- Full integration test (supervisor → delegate → Tavily → E4B summarize → file write → return) takes ~5 min on M4 Pro

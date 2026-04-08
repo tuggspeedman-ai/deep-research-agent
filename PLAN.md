@@ -62,3 +62,6 @@ Make the project presentable: README, documentation, clean API, example usage.
 | 2026-04-06 | uv as package manager | Fast, modern Python package management |
 | 2026-04-06 | Course-driven milestones | Follow LangChain Academy curriculum structure for systematic learning |
 | 2026-04-06 | Tavily for web search | Consistency with LangChain course; free tier sufficient |
+| 2026-04-08 | Gemma 4 E4B for summarization | Lightweight local model replaces course's GPT-4o-mini; keeps everything local |
+| 2026-04-08 | Lazy client initialization | TavilyClient + ChatOllama created on first use, not at import time; avoids test/import failures |
+| 2026-04-08 | Integration tests marked separately | `@pytest.mark.integration` for tests requiring Ollama + Tavily; unit tests run fast without external deps |
