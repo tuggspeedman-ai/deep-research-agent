@@ -9,8 +9,8 @@
 
 ## Current State
 
-**Milestone:** M3 — Complete. Ready for M4
-**Next session:** Start M4 — Sub-agent Delegation
+**Milestone:** M4 — Sub-agent Delegation (in progress)
+**Status:** Plan complete, ready to implement T1-T7
 **Blocked:** Nothing
 
 ## M0: Project Setup ✅ COMPLETE
@@ -29,24 +29,51 @@ DeepAgentState with todos, write_todos/read_todos tools, TODO workflow prompts. 
 
 Virtual filesystem in DeepAgentState with `file_reducer` (merge semantics). `ls`, `read_file`, `write_file` tools. `write_file` simplified over course version — skips `InjectedState` since reducer handles merge. 13 new tests (12 unit + 1 integration), 28 total. Full detail in `PLAN-archive.md`.
 
-## M4 — Sub-agent Delegation
+## M4 — Sub-agent Delegation ← ACTIVE
 
 ### Goal
 Implement sub-agent spawning for context isolation. The supervisor delegates tasks to specialized sub-agents with their own tools and fresh context windows.
 
-*Course reference: notebook 3 (`3_subagents.ipynb`)*
+*Course reference: notebook 3 (`3_subagents.ipynb`), course impl: `course-materials/.../task_tool.py`*
+
+### Design
+
+**Core pattern:** Context isolation through message reset. Sub-agents receive `state["messages"] = [{"role": "user", "content": description}]` — fresh messages, shared file system (via `file_reducer` merge).
+
+**New files:**
+- `src/think_tool.py` (~15 lines) — stateless reflection tool, returns confirmation string
+- `src/task_tool.py` (~80 lines) — `SubAgent` TypedDict + `_create_task_tool()` factory
+- `tests/test_task.py` (~150 lines) — unit tests (no LLM) + integration tests
+
+**Modified files:**
+- `src/prompts.py` — add `TASK_DESCRIPTION_PREFIX`, `SUBAGENT_USAGE_INSTRUCTIONS`
+- `src/deep_agent.py` — integrate task tool + think_tool, default research sub-agent config
+
+**Key decisions:**
+- `SubAgent` is a TypedDict: `name`, `description`, `prompt`, `tools: NotRequired[list[str]]`
+- `_create_task_tool()` builds an agent registry, returns a `task` tool with `InjectedState` + `InjectedToolCallId`
+- Task tool returns `Command` with merged files + ToolMessage (sub-agent's last message)
+- Default sub-agent ("research-agent") uses mock_web_search + file tools + think_tool
+- Real Tavily search deferred to M5
 
 ### Tasks
-- [ ] Define `SubAgent` config (name, description, prompt, tools)
-- [ ] Implement `_create_task_tool()` factory — creates a `task(description, subagent_type)` tool
-- [ ] Sub-agents get isolated messages but share the file system
-- [ ] Implement `think_tool` for structured reflection
-- [ ] Test parallel sub-agent execution for independent research streams
+- [x] T1: Create `src/think_tool.py` — stateless `think_tool(reflection) -> str`
+- [x] T2: Add `TASK_DESCRIPTION_PREFIX` and `SUBAGENT_USAGE_INSTRUCTIONS` to `src/prompts.py`
+- [x] T3: Create `src/task_tool.py` — `SubAgent` TypedDict + `_create_task_tool()` factory
+- [x] T4: Update `src/deep_agent.py` — integrate task/think tools, define default research sub-agent
+- [x] T5: Create `tests/test_task.py` — unit tests (think_tool, task tool isolation, error handling)
+- [x] T6: Add integration tests — supervisor delegates, sub-agent file writes visible
+- [x] T7: Run full test suite, verify 28+ existing tests still pass + new tests
 
 ### Verification
-- Supervisor delegates to sub-agents, receives results
-- Sub-agents don't pollute supervisor's context
-- File system changes from sub-agents are visible to supervisor
+- `uv run pytest tests/test_task.py -v` — all new tests pass
+- `uv run pytest tests/ -v` — all 28 existing + new tests pass
+- Unit: think_tool returns expected string
+- Unit: task tool rejects invalid subagent_type
+- Unit: context isolation (messages replaced, files preserved)
+- Unit: file changes propagated back via Command
+- Integration: supervisor delegates and receives results
+- Integration: sub-agent file writes visible to supervisor
 
 ## M5 — Full Deep Research Agent
 
