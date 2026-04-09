@@ -83,7 +83,7 @@ def get_history(
     if not ops:
         summary = "No calculations yet."
     else:
-        lines = [f"  {i+1}. {op}" for i, op in enumerate(ops)]
+        lines = [f"  {i + 1}. {op}" for i, op in enumerate(ops)]
         summary = "Calculation history:\n" + "\n".join(lines)
 
     return Command(

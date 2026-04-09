@@ -83,7 +83,7 @@ llm = ChatOllama(
 
 ## Key Design Decisions
 
-- **Fully local** — no cloud LLM APIs. Everything runs on the MacBook via Ollama
+- **Local-first, multi-provider** — defaults to Ollama on local hardware, but supports any LLM provider (OpenAI, Anthropic, Google, etc.) via provider:model strings
 - **LangGraph over raw LangChain** — explicit graph-based agent with checkpointing, not simple chains
 - **Course-driven structure** — follow the LangChain Academy curriculum, implementing each module as a milestone
 - **Eval-driven** — implement behavioral evals as we go, not as an afterthought

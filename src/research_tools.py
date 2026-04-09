@@ -11,9 +11,9 @@ from datetime import datetime
 from typing import Annotated, Literal
 
 import httpx
+from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_core.tools import InjectedToolArg, InjectedToolCallId, tool
-from langchain_ollama import ChatOllama
 from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 from markdownify import markdownify
@@ -23,16 +23,15 @@ from tavily import TavilyClient
 from src.prompts import SUMMARIZE_WEB_SEARCH
 from src.state import DeepAgentState
 
-_summarization_model: ChatOllama | None = None
+_summarization_model = None
 _tavily_client: TavilyClient | None = None
 
 
-def _get_summarization_model() -> ChatOllama:
+def _get_summarization_model():
     global _summarization_model
     if _summarization_model is None:
-        _summarization_model = ChatOllama(
-            model="gemma4:e4b", temperature=0
-        )
+        model = os.environ.get("SUMMARIZER_MODEL", "ollama:gemma4:e4b")
+        _summarization_model = init_chat_model(model, temperature=0)
     return _summarization_model
 
 
@@ -68,9 +67,7 @@ def run_tavily_search(
 
 def summarize_webpage_content(webpage_content: str) -> Summary:
     try:
-        structured_model = _get_summarization_model().with_structured_output(
-            Summary
-        )
+        structured_model = _get_summarization_model().with_structured_output(Summary)
         return structured_model.invoke(
             [
                 HumanMessage(
@@ -91,45 +88,44 @@ def summarize_webpage_content(webpage_content: str) -> Summary:
 
 def process_search_results(results: dict) -> list[dict]:
     processed = []
-    client = httpx.Client(timeout=30.0)
 
-    for result in results.get("results", []):
-        url = result.get("url", "")
-        title = result.get("title", "")
+    with httpx.Client(timeout=30.0) as client:
+        for result in results.get("results", []):
+            url = result.get("url", "")
+            title = result.get("title", "")
 
-        try:
-            response = client.get(url)
-            if response.status_code == 200:
-                raw_content = markdownify(response.text)
-                summary_result = summarize_webpage_content(raw_content)
-            else:
+            try:
+                response = client.get(url)
+                if response.status_code == 200:
+                    raw_content = markdownify(response.text)
+                    summary_result = summarize_webpage_content(raw_content)
+                else:
+                    raw_content = result.get("raw_content") or result.get("content", "")
+                    summary_result = Summary(
+                        filename="URL_error.md",
+                        summary=result.get("content", "Error reading URL"),
+                    )
+            except (httpx.TimeoutException, httpx.RequestError):
                 raw_content = result.get("raw_content") or result.get("content", "")
                 summary_result = Summary(
-                    filename="URL_error.md",
-                    summary=result.get("content", "Error reading URL"),
+                    filename="connection_error.md",
+                    summary=result.get("content", "Error connecting to URL"),
                 )
-        except (httpx.TimeoutException, httpx.RequestError):
-            raw_content = result.get("raw_content") or result.get("content", "")
-            summary_result = Summary(
-                filename="connection_error.md",
-                summary=result.get("content", "Error connecting to URL"),
+
+            uid = uuid.uuid4().hex[:8]
+            name, ext = os.path.splitext(summary_result.filename)
+            filename = f"{name}_{uid}{ext}"
+
+            processed.append(
+                {
+                    "url": url,
+                    "title": title,
+                    "summary": summary_result.summary,
+                    "filename": filename,
+                    "raw_content": raw_content,
+                }
             )
 
-        uid = uuid.uuid4().hex[:8]
-        name, ext = os.path.splitext(summary_result.filename)
-        filename = f"{name}_{uid}{ext}"
-
-        processed.append(
-            {
-                "url": url,
-                "title": title,
-                "summary": summary_result.summary,
-                "filename": filename,
-                "raw_content": raw_content,
-            }
-        )
-
-    client.close()
     return processed
 
 
@@ -174,9 +170,7 @@ def tavily_search(
     summary_lines = [f"Found {len(processed)} result(s):\n"]
     for result in processed:
         summary_lines.append(f"- **{result['filename']}**: {result['summary']}")
-    summary_lines.append(
-        "\nUse read_file() to access full content of any result."
-    )
+    summary_lines.append("\nUse read_file() to access full content of any result.")
     summary_text = "\n".join(summary_lines)
 
     return Command(

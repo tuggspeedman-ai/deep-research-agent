@@ -46,9 +46,7 @@ def test_think_tool_returns_reflection():
 
 def test_think_tool_empty_reflection():
     """think_tool handles empty string."""
-    result = think_tool.invoke(
-        _tool_call("think_tool", {"reflection": ""})
-    )
+    result = think_tool.invoke(_tool_call("think_tool", {"reflection": ""}))
     text = result.content if hasattr(result, "content") else result
     assert "Reflection recorded" in text
 
@@ -117,9 +115,7 @@ class TestTaskTool:
             return "dummy"
 
         with patch("src.task_tool.create_agent", return_value=mock_agent):
-            return _create_task_tool(
-                [dummy_tool], subagents, MagicMock(), MagicMock()
-            )
+            return _create_task_tool([dummy_tool], subagents, MagicMock(), MagicMock())
 
     def test_invalid_subagent_type(self):
         """task tool returns error for unknown subagent_type."""

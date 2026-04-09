@@ -11,8 +11,32 @@ from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 
-from src.prompts import WRITE_TODOS_DESCRIPTION
+from src.prompts import SUBMIT_PLAN_DESCRIPTION, WRITE_TODOS_DESCRIPTION
 from src.state import DeepAgentState, Todo
+
+
+@tool(description=SUBMIT_PLAN_DESCRIPTION, parse_docstring=True)
+def submit_plan(
+    todos: list[Todo],
+    tool_call_id: Annotated[str, InjectedToolCallId],
+) -> Command:
+    """Submit the initial research plan for human approval.
+
+    Args:
+        todos: List of Todo items with content and status fields.
+        tool_call_id: Tool call identifier for message response.
+    """
+    return Command(
+        update={
+            "todos": todos,
+            "messages": [
+                ToolMessage(
+                    f"Updated todo list to {todos}",
+                    tool_call_id=tool_call_id,
+                )
+            ],
+        }
+    )
 
 
 @tool(description=WRITE_TODOS_DESCRIPTION, parse_docstring=True)

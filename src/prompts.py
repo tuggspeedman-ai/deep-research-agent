@@ -1,5 +1,17 @@
 """Prompt templates and tool descriptions for the deep agent."""
 
+SUBMIT_PLAN_DESCRIPTION = """\
+Submit your initial research plan for human approval. Call this ONCE at the start \
+before executing any tasks. The plan will be reviewed and approved/rejected by the \
+user. \
+After approval, use write_todos for status updates.
+
+## Parameters
+- todos: List of TODO items with content and status fields
+
+## Returns
+Updates agent state with new todo list."""
+
 WRITE_TODOS_DESCRIPTION = """\
 Create and manage structured task lists for tracking progress through complex workflows.
 
@@ -32,8 +44,8 @@ Updates agent state with new todo list."""
 
 TODO_USAGE_INSTRUCTIONS = """\
 Based upon the user's request:
-1. Use the write_todos tool to create TODOs at the start of a \
-user request, per the tool description.
+1. Use the submit_plan tool to submit your initial research plan for approval. \
+After it is approved, use write_todos to update progress as you work.
 2. After you accomplish a TODO, use the read_todos tool to read \
 the TODOs and remind yourself of the plan.
 3. Reflect on what you've done and the TODO list.

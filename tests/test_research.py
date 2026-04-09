@@ -39,9 +39,7 @@ def invoke(agent, prompt: str) -> dict:
 
 def test_summarize_webpage_content_fallback():
     """When the LLM fails, summarize_webpage_content returns truncated content."""
-    with patch(
-        "src.research_tools._get_summarization_model"
-    ) as mock_getter:
+    with patch("src.research_tools._get_summarization_model") as mock_getter:
         mock_getter.return_value.with_structured_output.side_effect = Exception(
             "LLM unavailable"
         )
@@ -57,9 +55,7 @@ def test_summarize_webpage_content_fallback():
 
 def test_summarize_webpage_content_fallback_short():
     """When the LLM fails on short content, returns full content without truncation."""
-    with patch(
-        "src.research_tools._get_summarization_model"
-    ) as mock_getter:
+    with patch("src.research_tools._get_summarization_model") as mock_getter:
         mock_getter.return_value.with_structured_output.side_effect = Exception(
             "LLM unavailable"
         )
@@ -83,7 +79,8 @@ def test_process_search_results_timeout(mock_client_cls, mock_summarize):
     """When httpx times out, process_search_results uses fallback summary."""
     mock_client = MagicMock()
     mock_client.get.side_effect = httpx.TimeoutException("timed out")
-    mock_client_cls.return_value = mock_client
+    mock_client_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
+    mock_client_cls.return_value.__exit__ = MagicMock(return_value=False)
 
     results = {
         "results": [
@@ -111,7 +108,8 @@ def test_filename_uniquification(mock_client_cls, mock_summarize):
     """Two results returning the same filename get unique suffixes."""
     mock_client = MagicMock()
     mock_client.get.side_effect = httpx.TimeoutException("timed out")
-    mock_client_cls.return_value = mock_client
+    mock_client_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
+    mock_client_cls.return_value.__exit__ = MagicMock(return_value=False)
 
     results = {
         "results": [

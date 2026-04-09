@@ -8,7 +8,7 @@ import pytest
 
 from src.deep_agent import create_deep_agent
 from src.state import Todo
-from src.todo_tools import read_todos, write_todos
+from src.todo_tools import read_todos, submit_plan, write_todos
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -28,6 +28,21 @@ def invoke(agent, prompt: str) -> dict:
 def _tool_call(name: str, args: dict, call_id: str = "test-123") -> dict:
     """Build a ToolCall dict for invoking tools with InjectedToolCallId."""
     return {"name": name, "args": args, "type": "tool_call", "id": call_id}
+
+
+def test_submit_plan_returns_command():
+    """submit_plan returns a Command that sets todos and adds a ToolMessage."""
+    from langgraph.types import Command
+
+    todos: list[Todo] = [
+        {"content": "Research MCP", "status": "pending"},
+        {"content": "Summarize findings", "status": "pending"},
+    ]
+    result = submit_plan.invoke(_tool_call("submit_plan", {"todos": todos}))
+    assert isinstance(result, Command)
+    assert result.update["todos"] == todos
+    assert len(result.update["messages"]) == 1
+    assert result.update["messages"][0].tool_call_id == "test-123"
 
 
 def test_write_todos_returns_command():

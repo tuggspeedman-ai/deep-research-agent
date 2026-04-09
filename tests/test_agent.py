@@ -1,10 +1,15 @@
-"""Tests for the ReAct agent with custom state, InjectedState, and Command."""
+"""Tests for the ReAct agent with custom state, InjectedState, and Command.
+
+These tests require a running Ollama instance with gemma4:26b.
+"""
 
 import pytest
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel
 
 from src.agent import create_calc_agent
+
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
@@ -31,26 +36,20 @@ def test_single_calculation(agent):
 
 def test_multi_step(agent):
     """Agent handles multiple calculations in sequence."""
-    result = invoke(
-        agent, "Calculate 10 + 5, then multiply that result by 3."
-    )
+    result = invoke(agent, "Calculate 10 + 5, then multiply that result by 3.")
     assert len(result["ops"]) >= 2
 
 
 def test_history_tool(agent):
     """Agent can read operation history via InjectedState."""
-    result = invoke(
-        agent, "Calculate 9 * 9, then show me the history."
-    )
+    result = invoke(agent, "Calculate 9 * 9, then show me the history.")
     assert len(result["ops"]) >= 1
     # Verify a ToolMessage contains the history content
     messages = result["messages"]
     history_found = any(
         "9" in m.content and "81" in m.content
         for m in messages
-        if hasattr(m, "content")
-        and isinstance(m.content, str)
-        and m.type == "tool"
+        if hasattr(m, "content") and isinstance(m.content, str) and m.type == "tool"
     )
     assert history_found, "Expected a tool message with history"
 
@@ -102,9 +101,7 @@ def test_parallel_tool_calls(llm):
         return a * b
 
     llm_with_tools = llm.bind_tools([add, multiply])
-    response = llm_with_tools.invoke(
-        "What is 3+4 and 5*6? Calculate both."
-    )
+    response = llm_with_tools.invoke("What is 3+4 and 5*6? Calculate both.")
     assert len(response.tool_calls) == 2
     names = {tc["name"] for tc in response.tool_calls}
     assert names == {"add", "multiply"}

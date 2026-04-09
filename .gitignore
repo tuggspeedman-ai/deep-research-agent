@@ -47,5 +47,10 @@ Thumbs.db
 .claude/memory/
 .claude/settings.json
 
+# Internal project management
+PLAN.md
+PLAN-archive.md
+ORIENT.md
+
 # Course reference materials (not our code)
 course-materials/

@@ -1,7 +1,7 @@
-.PHONY: setup setup-python setup-ui setup-model run run-backend run-ui test test-unit test-integration
+.PHONY: setup setup-python setup-ui pull-model pull-summarizer pull-models run run-backend run-ui test test-unit test-integration
 
-# Full setup: Python deps + UI deps + Ollama model
-setup: setup-python setup-ui setup-model
+# Full setup: Python deps + UI deps (run `make pull-models` separately for Ollama)
+setup: setup-python setup-ui
 
 setup-python:
 	uv sync --all-extras
@@ -10,8 +10,20 @@ setup-ui:
 	# --legacy-peer-deps works around eslint version conflict in upstream UI repo
 	cd ui && npm install --legacy-peer-deps
 
-setup-model:
-	ollama pull gemma4:26b
+# Ollama model management (only needed for local models)
+pull-model:
+	@. .env 2>/dev/null; MODEL=$${MODEL:-ollama:gemma4:26b}; \
+	OLLAMA_MODEL=$${MODEL#ollama:}; \
+	echo "Pulling $$OLLAMA_MODEL..."; \
+	ollama pull $$OLLAMA_MODEL
+
+pull-summarizer:
+	@. .env 2>/dev/null; SUMMARIZER_MODEL=$${SUMMARIZER_MODEL:-ollama:gemma4:e4b}; \
+	OLLAMA_MODEL=$${SUMMARIZER_MODEL#ollama:}; \
+	echo "Pulling $$OLLAMA_MODEL..."; \
+	ollama pull $$OLLAMA_MODEL
+
+pull-models: pull-model pull-summarizer
 
 # Run both servers (backend on :2024, UI on :3000)
 run:

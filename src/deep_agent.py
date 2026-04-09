@@ -2,17 +2,18 @@
 
 Composes all tools into a full deep research agent:
 - DeepAgentState with todos and files fields
-- write_todos / read_todos tools for plan management
+- submit_plan / write_todos / read_todos tools for plan management
 - ls / read_file / write_file tools for context offloading
 - think_tool for structured reflection
 - tavily_search for web search with context offloading
 - task tool for sub-agent delegation with context isolation
 """
 
+import os
 from datetime import datetime
 
 from langchain.agents import create_agent
-from langchain_ollama import ChatOllama
+from langchain.chat_models import init_chat_model
 
 from src.file_tools import ls, read_file, write_file
 from src.prompts import (
@@ -25,7 +26,7 @@ from src.research_tools import tavily_search
 from src.state import DeepAgentState
 from src.task_tool import SubAgent, _create_task_tool
 from src.think_tool import think_tool
-from src.todo_tools import read_todos, write_todos
+from src.todo_tools import read_todos, submit_plan, write_todos
 
 
 def _get_today_str() -> str:
@@ -47,6 +48,7 @@ DEFAULT_SUBAGENTS: list[SubAgent] = [
 
 # Tools available to the supervisor and sub-agents
 SUPERVISOR_TOOLS = [
+    submit_plan,
     write_todos,
     read_todos,
     tavily_search,
@@ -75,30 +77,30 @@ SUPERVISOR_PROMPT = (
 
 
 def create_deep_agent(
-    model: str = "gemma4:26b",
+    model: str = "ollama:gemma4:26b",
     temperature: float = 0,
     subagents: list[SubAgent] | None = None,
     hitl: bool = False,
-    checkpointer: "Checkpointer | None" = None,
+    checkpointer: "Checkpointer | None" = None,  # noqa: F821
 ):
     """Create a deep agent with TODO planning, file system, and sub-agent delegation.
 
     Args:
-        model: Ollama model name.
+        model: Model in "provider:model" format (e.g. "openai:gpt-4o",
+            "anthropic:claude-sonnet-4-5-20250514", "ollama:gemma4:26b").
         temperature: LLM temperature.
         subagents: Sub-agent configs. Defaults to a research agent with Tavily search.
-        hitl: Enable human-in-the-loop plan approval via interrupt on write_todos.
+        hitl: Enable human-in-the-loop plan approval via interrupt on submit_plan.
         checkpointer: LangGraph checkpointer for persistence. Required for hitl.
-            If None and hitl=True, one must be provided by the runtime (e.g. langgraph dev).
+            If None and hitl=True, one must be provided by the runtime
+            (e.g. langgraph dev).
     """
-    llm = ChatOllama(model=model, temperature=temperature)
+    llm = init_chat_model(model, temperature=temperature)
 
     if subagents is None:
         subagents = DEFAULT_SUBAGENTS
 
-    task_tool = _create_task_tool(
-        SUPERVISOR_TOOLS, subagents, llm, DeepAgentState
-    )
+    task_tool = _create_task_tool(SUPERVISOR_TOOLS, subagents, llm, DeepAgentState)
 
     all_tools = [*SUPERVISOR_TOOLS, task_tool]
 
@@ -110,7 +112,7 @@ def create_deep_agent(
 
         middleware.append(
             HumanInTheLoopMiddleware(
-                interrupt_on={"write_todos": True},
+                interrupt_on={"submit_plan": True},
             )
         )
 
@@ -128,6 +130,7 @@ def _make_graph():
     """Lazy graph factory for langgraph dev server.
 
     langgraph dev calls this to get the compiled graph.
-    Defined as a function to avoid eager ChatOllama initialization at import time.
+    Defined as a function to avoid eager LLM initialization at import time.
     """
-    return create_deep_agent(hitl=True)
+    model = os.environ.get("MODEL", "ollama:gemma4:26b")
+    return create_deep_agent(model=model, hitl=True)
